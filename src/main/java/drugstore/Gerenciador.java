@@ -29,15 +29,11 @@ public class Gerenciador {
 	public static void visualizar() {
 		String jpql = "select c from Cliente c";
 		List<Cliente> consulta;
-		System.out.println("cheguei");
 		
 		try {
 			gerenciador = JpaUtil.getEntityManager();
 			gerenciador.getTransaction().begin();
 			consulta = gerenciador.createQuery(jpql, Cliente.class).getResultList();
-			//gerenciador.getTransaction().commit();
-			
-			System.out.println("cheguei2");
 			
 			for (Cliente cliente : consulta) {
 				System.out.println(cliente.getNome());
@@ -52,23 +48,25 @@ public class Gerenciador {
 			gerenciador.close();
 		}
 	}
-	public static void consultaPorId(Long id) {
+	public static Cliente consultaPorId(Long id) {
 			
 		try {
 			gerenciador = JpaUtil.getEntityManager();
 			gerenciador.getTransaction().begin();
 			Cliente cliente = gerenciador.find(Cliente.class, id);
 			System.out.println(cliente.getNome());
+			return(cliente);
 			
 		} catch (Exception e) {
 			gerenciador.getTransaction().rollback();
 			e.printStackTrace();
+			return null;
 		} finally {
 			gerenciador.close();
 		}	
 	}
 	
-	public static void consultaPorNome(String nome) {
+	public static List<Cliente> consultaPorNome(String nome) {
 		String jpql = "select c from Cliente c where c.nome =:nome";
 		List<Cliente> consulta;
 		try {
@@ -79,11 +77,58 @@ public class Gerenciador {
 			for (Cliente cliente : consulta) {
 				System.out.println("ID: " + cliente.getId() + " Nome: " +cliente.getNome());
 			}
+			return consulta;
 		} catch(Exception e) {
 			gerenciador.getTransaction().rollback();
 			e.printStackTrace();
+			return null;
 		} finally {
 			gerenciador.clear();
+			
+		}
+	}
+	public static void atualizar(String nome, String novoNome) {
+		List<Cliente> clientes = Gerenciador.consultaPorNome(nome);
+		if(clientes.isEmpty()) {
+			System.out.println("Nenhum registro encontrado no banco para " + nome);
+		}
+		
+		else {
+			try {
+				gerenciador = JpaUtil.getEntityManager();
+				gerenciador.getTransaction().begin();
+				if(!novoNome.isEmpty()) {
+					for (Cliente c : clientes) {
+						
+						gerenciador.merge(c).setNome(novoNome);
+					}
+					System.out.println("Nome alterado com sucesso!");
+				}
+				gerenciador.getTransaction().commit();
+				Gerenciador.visualizar();
+				
+			} catch(Exception e) {
+				gerenciador.getTransaction().rollback();
+				e.printStackTrace();
+			} finally {
+				gerenciador.close();
+			}
+		}
+		
+		
+	}
+	public static void remover(Long id) {
+		try {
+			gerenciador = JpaUtil.getEntityManager();
+			gerenciador.getTransaction().begin();
+			Cliente cliente = gerenciador.find(Cliente.class, id);
+			gerenciador.remove(cliente);
+			gerenciador.getTransaction().commit();
+		} catch (Exception e) {
+			gerenciador.getTransaction().rollback();
+			e.printStackTrace();
+		} finally {
+			gerenciador.close();
 		}
 	}
 }
